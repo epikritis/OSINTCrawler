@@ -8,3 +8,6 @@ phonenumbers>=8.13
 fastapi>=0.110
 python-multipart>=0.0.9
 anthropic>=1,<2
+# Transitive dependencies pinned to patched minimums (security advisories)
+zipp>=3.19.1
+pygments>=2.20.0
