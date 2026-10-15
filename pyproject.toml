@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "osintcrawler"
+version = "0.1.0"
+description = "Query many OSINT sources for security indicators and get a summarised, explainable verdict."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [{ name = "epikritis" }]
+keywords = ["osint", "threat-intelligence", "ioc", "enrichment", "soc", "dfir"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Topic :: Security",
+  "Environment :: Console",
+]
+dependencies = [
+  "httpx>=0.27,<1",
+  "typer>=0.12",
+  "rich>=13",
+  "jinja2>=3.1",
+  "python-dotenv>=1.0",
+  "phonenumbers>=8.13",
+  "fastapi>=0.110",
+  "python-multipart>=0.0.9",
+  "anthropic>=1,<2",
+]
+# Keep in sync with requirements.txt (Vercel may install from either file).
+
+[project.optional-dependencies]
+web = ["uvicorn>=0.29"]
+dev = ["pytest>=8", "respx>=0.21", "uvicorn>=0.29"]
+
+[project.scripts]
+osintcrawler = "osintcrawler.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/epikritis/OSINTCrawler"
+
+[tool.setuptools.packages.find]
+include = ["osintcrawler*"]
+
+[tool.setuptools.package-data]
+osintcrawler = ["templates/*.j2", "data/*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
