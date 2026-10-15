@@ -81,3 +81,11 @@ def test_same_origin_ignores_mismatched_forwarded_host(client):
     resp = client.post("/lookup", data={"indicators": "example.com"},
                        headers={"Origin": "https://testserver", "X-Forwarded-Host": "internal.example"})
     assert resp.status_code == 200
+
+
+def test_null_origin_allowed_for_login_but_wrong_token_still_rejected(client):
+    # Opaque "null" origin comes from cross-site redirects (e.g. Vercel sign-in).
+    resp = client.post("/login", data={"token": "wrong"}, headers={"Origin": "null"})
+    assert resp.status_code == 401
+    resp = client.post("/login", data={"token": TOKEN}, headers={"Origin": "null"}, follow_redirects=False)
+    assert resp.status_code == 303

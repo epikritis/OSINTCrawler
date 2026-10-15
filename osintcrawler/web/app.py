@@ -96,8 +96,12 @@ def _rate_limited(request: Request, bucket: str, per_minute: int | None = None) 
 
 def _same_origin(request: Request) -> bool:
     origin = request.headers.get("origin")
-    if not origin:
-        return True  # non-browser clients / older browsers; SameSite=Strict still protects the cookie
+    # No Origin (non-browser clients) or "null" (opaque origin, e.g. a form post that
+    # followed a cross-site redirect such as Vercel's sign-in). The session cookie is
+    # SameSite=Strict, so browsers never attach it to cross-site requests, and login
+    # still requires the secret token.
+    if not origin or origin == "null":
+        return True
     # Compare with the Host header the browser actually addressed. Proxies such as
     # Vercel can rewrite X-Forwarded-Host to an internal name, which broke this check.
     host = request.headers.get("host") or request.headers.get("x-forwarded-host", "")
