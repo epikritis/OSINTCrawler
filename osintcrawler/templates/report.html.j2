@@ -4,93 +4,136 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light dark">
 <title>OSINTCrawler Report</title>
+<script{% if nonce %} nonce="{{ nonce }}"{% endif %}>{% include "_theme_init.js.j2" %}</script>
 <style{% if nonce %} nonce="{{ nonce }}"{% endif %}>
-:root {
-  --bg: #f6f7f9; --panel: #ffffff; --text: #1b1f24; --muted: #5b6470; --border: #dfe3e8;
-  --mal: #c62828; --sus: #b26a00; --low: #2e7d32; --info: #1565c0; --unk: #616161;
-  --chip: #eef1f5; --code: #f3f5f8; --accent: #3949ab;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0f1216; --panel: #171b21; --text: #e6e9ed; --muted: #9aa4b0; --border: #2a313a;
-    --mal: #ef5350; --sus: #ffb74d; --low: #66bb6a; --info: #64b5f6; --unk: #9e9e9e;
-    --chip: #222831; --code: #12161b; --accent: #8c9eff;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #0f1216; --panel: #171b21; --text: #e6e9ed; --muted: #9aa4b0; --border: #2a313a;
-  --mal: #ef5350; --sus: #ffb74d; --low: #66bb6a; --info: #64b5f6; --unk: #9e9e9e;
-  --chip: #222831; --code: #12161b; --accent: #8c9eff;
-}
-* { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--text);
-  font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-main { max-width: 1200px; margin: 0 auto; padding: 24px 16px 64px; }
-h1 { font-size: 22px; margin: 0 0 4px; } h2 { font-size: 18px; margin: 0; } h3 { font-size: 15px; margin: 18px 0 8px; }
-a { color: var(--accent); word-break: break-all; }
-.muted { color: var(--muted); }
-.bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-.btn { border: 1px solid var(--border); background: var(--panel); color: var(--text); padding: 6px 12px;
-  border-radius: 6px; cursor: pointer; font: inherit; text-decoration: none; }
-.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin: 16px 0; }
-.table-wrap { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; }
-th, td { text-align: left; vertical-align: top; padding: 8px; border-bottom: 1px solid var(--border); }
-th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
-.badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-weight: 700; font-size: 12px;
-  color: #fff; white-space: nowrap; }
-.v-malicious { background: var(--mal); } .v-suspicious { background: var(--sus); color: #1b1f24; }
-.v-low_risk { background: var(--low); } .v-informational { background: var(--info); } .v-unknown { background: var(--unk); }
-.risk { display: flex; align-items: center; gap: 6px; min-width: 90px; }
-.risk-track { flex: 1; height: 6px; background: var(--chip); border-radius: 3px; overflow: hidden; }
-.risk-fill { height: 100%; }
-.chip { display: inline-block; background: var(--chip); border-radius: 4px; padding: 1px 6px; margin: 2px 4px 2px 0;
-  font-size: 12px; }
+{% include "_base.css.j2" %}
+/* ---- Report ---- */
+.hero { position: relative; overflow: hidden; margin-top: 26px; padding: 28px; border-radius: 22px; color: #fff;
+  background: var(--grad); box-shadow: 0 24px 50px -24px rgba(168, 85, 247, .75); }
+.hero::after { content: ""; position: absolute; inset: auto -60px -90px auto; width: 260px; height: 260px; border-radius: 50%;
+  background: rgba(255, 255, 255, .14); pointer-events: none; }
+.hero h1 { margin: 0 0 6px; font-size: clamp(22px, 3.6vw, 30px); font-weight: 800; }
+.hero .meta { color: rgba(255, 255, 255, .85); font-size: 14px; }
+.hero .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.hero .btn { background: rgba(255, 255, 255, .16); color: #fff; border-color: rgba(255, 255, 255, .3); }
+.hero .btn:hover { background: rgba(255, 255, 255, .26); }
+
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-top: 18px; }
+.stat { position: relative; overflow: hidden; background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+  padding: 16px 18px; box-shadow: var(--shadow); }
+.stat::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: var(--c, var(--unk)); }
+.stat-num { font-size: 30px; font-weight: 800; line-height: 1.1; color: var(--c, var(--text)); }
+.stat-label { color: var(--muted); font-size: 13px; font-weight: 600; margin-top: 4px; }
+
+.section-title { font-size: 18px; font-weight: 800; margin: 0 0 12px; }
+.table-wrap { overflow-x: auto; margin: 0 -6px; padding: 0 6px; }
+table { width: 100%; border-collapse: separate; border-spacing: 0; }
+th, td { text-align: left; vertical-align: top; padding: 12px 10px; border-bottom: 1px solid var(--border); }
+th { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; }
+tbody tr { transition: background-color .15s; }
+tbody tr:hover { background: var(--chip); }
+tbody tr:last-child td { border-bottom: 0; }
+.ind-value { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; word-break: break-all; font-size: 13.5px; }
+.risk { display: flex; align-items: center; gap: 10px; min-width: 110px; }
+.risk-num { font-weight: 800; font-variant-numeric: tabular-nums; min-width: 26px; }
+.risk .meter { flex: 1; }
+.findings div { margin-bottom: 3px; }
+
+.ind-card { scroll-margin-top: 90px; }
+.ind-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.ind-head h2 { margin: 0; font-size: 19px; }
+.ind-head .sub { color: var(--muted); font-size: 13px; }
+.ind-head .score { margin-left: auto; min-width: 180px; }
+.summary-list { margin: 14px 0 6px; padding: 0; list-style: none; display: grid; gap: 8px; }
+.summary-list li { padding: 10px 12px; border-radius: 12px; background: var(--code); border: 1px solid var(--border); font-size: 14px; }
+.status { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: 12px; text-transform: capitalize; }
+.status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
 .s-ok { color: var(--low); } .s-not_found { color: var(--info); } .s-error { color: var(--mal); } .s-skipped { color: var(--muted); }
-ul.summary { margin: 8px 0; padding-left: 20px; }
-details summary { cursor: pointer; color: var(--muted); }
-pre { background: var(--code); border: 1px solid var(--border); border-radius: 6px; padding: 10px; overflow: auto;
+.src-name { font-weight: 700; }
+.src-time { color: var(--muted); font-size: 12px; }
+details { margin-top: 8px; }
+details summary { cursor: pointer; color: var(--accent); font-weight: 600; font-size: 13px; }
+pre { background: var(--code); border: 1px solid var(--border); border-radius: 12px; padding: 12px; overflow: auto;
   max-height: 420px; font-size: 12px; white-space: pre-wrap; word-break: break-word; }
-.ai { border-left: 4px solid var(--accent); white-space: pre-wrap; }
-.warn { color: var(--sus); }
-.ind-head { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-.ind-value { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; word-break: break-all; }
-footer { margin-top: 32px; font-size: 12px; color: var(--muted); }
-@media (max-width: 640px) { th:nth-child(2), td:nth-child(2) { display: none; } }
-@media print { .noprint { display: none; } details { display: block; } }
+.ai { border-left: 4px solid transparent; border-image: var(--grad) 1; }
+.ai p { white-space: pre-wrap; margin: 8px 0 0; }
+.warn { padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--sus) 14%, transparent); margin-top: 6px;
+  color: var(--text); font-size: 14px; }
+footer { margin-top: 36px; text-align: center; font-size: 12px; color: var(--muted); }
+
+@media (max-width: 640px) {
+  .wrap { padding: 0 14px 56px; }
+  th:nth-child(2), td:nth-child(2) { display: none; }
+  .ind-head .score { margin-left: 0; width: 100%; }
+  .hero { padding: 22px; }
+}
+@media print {
+  body { background: #fff; color: #000; }
+  .noprint, .topbar { display: none !important; }
+  .card, .stat { box-shadow: none; }
+  details { display: block; }
+}
 </style>
 </head>
 <body>
-<main>
-  <div class="bar">
-    <div>
-      <h1>OSINTCrawler report</h1>
-      <div class="muted">Generated {{ report.generated_at }} · v{{ report.tool_version }} · {{ report.indicators|length }} indicator(s)</div>
-    </div>
-    <div class="noprint">
+<header class="topbar noprint">
+  <div class="topbar-inner">
+    <a class="brand" href="./">
+      <span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6l7-3z"/><circle cx="12" cy="11" r="2.4"/></svg></span>
+      <span>OSINT<span class="gradient-text">Crawler</span></span>
+    </a>
+    <div class="topbar-actions">
       {% if web %}<a class="btn" href="./">New lookup</a>{% endif %}
       <button class="btn" type="button" id="dl-json">Download JSON</button>
-      <button class="btn" type="button" id="theme">Toggle theme</button>
+      <button class="btn btn-icon" type="button" data-theme-toggle aria-label="Toggle dark and light mode" title="Toggle theme">
+        <svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        <svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
     </div>
   </div>
+</header>
+
+{% set total = report.indicators | length %}
+{% set n_mal = report.indicators | selectattr("verdict.value", "equalto", "malicious") | list | length %}
+{% set n_sus = report.indicators | selectattr("verdict.value", "equalto", "suspicious") | list | length %}
+{% set n_low = report.indicators | selectattr("verdict.value", "equalto", "low_risk") | list | length %}
+{% set n_other = total - n_mal - n_sus - n_low %}
+
+<main class="wrap">
+  <section class="hero">
+    <h1>Investigation report</h1>
+    <div class="meta">Generated {{ report.generated_at }} · OSINTCrawler v{{ report.tool_version }} · {{ total }} indicator{{ "s" if total != 1 }}</div>
+    <div class="actions noprint">
+      <button class="btn" type="button" id="dl-json-hero">Download JSON</button>
+      {% if web %}<a class="btn" href="./">Start a new lookup</a>{% endif %}
+    </div>
+  </section>
 
   {% if report.ai_summary %}
-  <section class="panel ai">
-    <h2>AI analyst summary</h2>
-    <p class="muted">Generated by an LLM from the results below. Verify before acting.</p>
-    <div>{{ report.ai_summary }}</div>
+  <section class="card ai">
+    <h2 class="section-title">AI analyst summary</h2>
+    <p class="muted" style="margin:0;">Generated by an LLM from the results below. Verify before acting.</p>
+    <p>{{ report.ai_summary }}</p>
   </section>
   {% endif %}
 
   {% if report.warnings %}
-  <section class="panel">
+  <section class="card" style="padding:14px;">
     {% for w in report.warnings %}<div class="warn">⚠ {{ w }}</div>{% endfor %}
   </section>
   {% endif %}
 
-  <section class="panel">
-    <h2>Summary</h2>
+  <section class="stats" aria-label="Verdict counts">
+    <div class="stat v-malicious"><div class="stat-num">{{ n_mal }}</div><div class="stat-label">Malicious</div></div>
+    <div class="stat v-suspicious"><div class="stat-num">{{ n_sus }}</div><div class="stat-label">Suspicious</div></div>
+    <div class="stat v-low_risk"><div class="stat-num">{{ n_low }}</div><div class="stat-label">Low risk</div></div>
+    <div class="stat v-informational"><div class="stat-num">{{ n_other }}</div><div class="stat-label">Info / unknown</div></div>
+  </section>
+
+  <section class="card">
+    <h2 class="section-title">Summary</h2>
     <div class="table-wrap">
     <table>
       <thead><tr><th>Indicator</th><th>Type</th><th>Verdict</th><th>Risk</th><th>Key findings</th></tr></thead>
@@ -101,9 +144,9 @@ footer { margin-top: 32px; font-size: 12px; color: var(--muted); }
           <td>{{ rep.indicator.type.value }}</td>
           <td><span class="badge v-{{ rep.verdict.value }}">{{ verdict_label(rep.indicator.type, rep.verdict) }}</span></td>
           <td>{% if rep.risk_score is not none %}
-            <div class="risk"><span>{{ rep.risk_score }}</span><div class="risk-track"><div class="risk-fill v-{{ rep.verdict.value }}" style="width: {{ rep.risk_score }}%"></div></div></div>
-          {% else %}–{% endif %}</td>
-          <td>{% for s in rep.summary[:3] %}<div>{{ s }}</div>{% endfor %}</td>
+            <div class="risk v-{{ rep.verdict.value }}"><span class="risk-num">{{ rep.risk_score }}</span><div class="meter"><span style="width: {{ rep.risk_score }}%"></span></div></div>
+          {% else %}<span class="muted">–</span>{% endif %}</td>
+          <td class="findings">{% for s in rep.summary[:3] %}<div>{{ s }}</div>{% endfor %}</td>
         </tr>
       {% endfor %}
       </tbody>
@@ -112,34 +155,40 @@ footer { margin-top: 32px; font-size: 12px; color: var(--muted); }
   </section>
 
   {% for rep in report.indicators %}
-  <section class="panel" id="ind-{{ loop.index }}">
+  <section class="card ind-card" id="ind-{{ loop.index }}">
     <div class="ind-head">
       <span class="badge v-{{ rep.verdict.value }}">{{ verdict_label(rep.indicator.type, rep.verdict) }}</span>
       <h2 class="ind-value">{{ rep.indicator.value }}</h2>
-      <span class="muted">{{ rep.indicator.type.value }}{% if rep.risk_score is not none %} · risk {{ rep.risk_score }}/100{% endif %}</span>
+      <span class="sub">{{ rep.indicator.type.value }}</span>
+      {% if rep.risk_score is not none %}
+      <div class="score v-{{ rep.verdict.value }}">
+        <div class="meter"><span style="width: {{ rep.risk_score }}%"></span></div>
+        <div class="sub" style="margin-top:4px;">Risk {{ rep.risk_score }}/100</div>
+      </div>
+      {% endif %}
     </div>
     {% if rep.indicator.original and rep.indicator.original != rep.indicator.value %}
-      <div class="muted">Input: <span class="ind-value">{{ rep.indicator.original }}</span></div>
+      <div class="sub" style="margin-top:8px;">Input: <span class="ind-value">{{ rep.indicator.original }}</span></div>
     {% endif %}
-    <ul class="summary">{% for s in rep.summary %}<li>{{ s }}</li>{% endfor %}</ul>
+    <ul class="summary-list">{% for s in rep.summary %}<li>{{ s }}</li>{% endfor %}</ul>
     {% if rep.tags %}<div>{% for t in rep.tags %}<span class="chip">{{ t }}</span>{% endfor %}</div>{% endif %}
 
-    <h3>Sources</h3>
+    <h3 class="section-title" style="margin-top:20px;">Sources</h3>
     <div class="table-wrap">
     <table>
       <thead><tr><th>Source</th><th>Status</th><th>Score</th><th>Findings</th></tr></thead>
       <tbody>
       {% for r in rep.results if r.status.value != "skipped" %}
         <tr>
-          <td><strong>{{ r.source }}</strong><div class="muted">{{ r.elapsed_ms }} ms</div></td>
-          <td class="s-{{ r.status.value }}">{{ r.status.value }}</td>
-          <td>{{ "–" if r.score is none else r.score }}</td>
-          <td>
+          <td><div class="src-name">{{ r.source }}</div><div class="src-time">{{ r.elapsed_ms }} ms</div></td>
+          <td><span class="status s-{{ r.status.value }}">{{ r.status.value | replace("_", " ") }}</span></td>
+          <td style="font-weight:700;">{{ "–" if r.score is none else r.score }}</td>
+          <td class="findings">
             {% for f in r.findings %}<div>{{ f }}</div>{% endfor %}
             {% if r.error %}<div class="s-error">{{ r.error }}</div>{% endif %}
             {% if r.tags %}<div>{% for t in r.tags %}<span class="chip">{{ t }}</span>{% endfor %}</div>{% endif %}
             {% if r.link and (r.link.startswith("https://") or r.link.startswith("http://")) %}
-              <div><a href="{{ r.link }}" target="_blank" rel="noopener noreferrer nofollow">{{ r.link }}</a></div>
+              <div><a href="{{ r.link }}" target="_blank" rel="noopener noreferrer nofollow">Open source ↗</a></div>
             {% endif %}
             {% if r.data %}
               <details><summary>Raw data</summary><pre>{{ r.data | pretty }}</pre></details>
@@ -168,23 +217,17 @@ footer { margin-top: 32px; font-size: 12px; color: var(--muted); }
 <script{% if nonce %} nonce="{{ nonce }}"{% endif %}>
 (function () {
   var data = document.getElementById("report-data").textContent;
-  document.getElementById("dl-json").addEventListener("click", function () {
+  function download() {
     var blob = new Blob([JSON.stringify(JSON.parse(data), null, 2)], {type: "application/json"});
     var a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = "osintcrawler-report.json";
     document.body.appendChild(a); a.click(); a.remove();
-  });
-  var root = document.documentElement;
-  try { var saved = localStorage.getItem("oc-theme"); if (saved) root.setAttribute("data-theme", saved); } catch (e) {}
-  document.getElementById("theme").addEventListener("click", function () {
-    var dark = root.getAttribute("data-theme") ? root.getAttribute("data-theme") === "dark"
-      : window.matchMedia("(prefers-color-scheme: dark)").matches;
-    var next = dark ? "light" : "dark";
-    root.setAttribute("data-theme", next);
-    try { localStorage.setItem("oc-theme", next); } catch (e) {}
-  });
+  }
+  document.getElementById("dl-json").addEventListener("click", download);
+  document.getElementById("dl-json-hero").addEventListener("click", download);
 })();
 </script>
+<script{% if nonce %} nonce="{{ nonce }}"{% endif %}>{% include "_theme_toggle.js.j2" %}</script>
 </body>
 </html>

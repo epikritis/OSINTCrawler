@@ -53,7 +53,7 @@ def test_login_flow_and_lookup(client):
     assert "httponly" in cookie and "samesite=strict" in cookie and "secure" in cookie
     assert TOKEN.lower() not in cookie
     page = client.post("/lookup", data={"indicators": "example.com"})
-    assert page.status_code == 200 and "OSINTCrawler report" in page.text
+    assert page.status_code == 200 and "Investigation report" in page.text
     assert "nonce-" in page.headers["content-security-policy"]
     assert page.headers["x-frame-options"] == "DENY"
 

@@ -1,0 +1,11 @@
+(function () {
+  var root = document.documentElement;
+  var buttons = document.querySelectorAll("[data-theme-toggle]");
+  for (var i = 0; i < buttons.length; i++) {
+    buttons[i].addEventListener("click", function () {
+      var next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+      root.setAttribute("data-theme", next);
+      try { localStorage.setItem("oc-theme", next); } catch (e) {}
+    });
+  }
+})();

@@ -4,70 +4,126 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light dark">
 <title>OSINTCrawler</title>
-<style nonce="{{ nonce }}">
-:root { --bg: #f6f7f9; --panel: #fff; --text: #1b1f24; --muted: #5b6470; --border: #dfe3e8; --accent: #3949ab; --err: #c62828; }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { --bg: #0f1216; --panel: #171b21; --text: #e6e9ed; --muted: #9aa4b0; --border: #2a313a; --accent: #8c9eff; --err: #ef5350; }
+<script{% if nonce %} nonce="{{ nonce }}"{% endif %}>{% include "_theme_init.js.j2" %}</script>
+<style{% if nonce %} nonce="{{ nonce }}"{% endif %}>
+{% include "_base.css.j2" %}
+/* ---- Landing / sign-in / lookup ---- */
+.hero { padding: 40px 0 8px; text-align: center; }
+.hero h1 { font-size: clamp(28px, 4.6vw, 44px); font-weight: 800; margin: 0 0 10px; }
+.hero p { margin: 0 auto; max-width: 620px; color: var(--muted); font-size: 16px; }
+.pills { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 18px; }
+.pill { border: 1px solid var(--border); background: var(--surface-solid); border-radius: 999px; padding: 5px 12px; font-size: 13px;
+  color: var(--muted); }
+.form-card { max-width: 760px; margin: 28px auto 0; }
+.field { margin-bottom: 18px; }
+.field > label, .field-label { display: block; font-weight: 700; font-size: 14px; margin: 0 0 8px; }
+textarea, input[type=password], select {
+  width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-solid);
+  color: var(--text); font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; transition: border-color .15s, box-shadow .15s;
 }
-:root[data-theme="dark"] { --bg: #0f1216; --panel: #171b21; --text: #e6e9ed; --muted: #9aa4b0; --border: #2a313a; --accent: #8c9eff; --err: #ef5350; }
-* { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--text);
-  font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
-h1 { font-size: 24px; margin: 0 0 4px; }
-.muted { color: var(--muted); }
-.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-top: 20px; }
-label { display: block; font-weight: 600; margin: 12px 0 6px; }
-textarea, input[type=password], select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px;
-  background: var(--bg); color: var(--text); font: 14px ui-monospace, SFMono-Regular, Menlo, monospace; }
-textarea { min-height: 180px; resize: vertical; }
-.row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: space-between; margin-top: 16px; }
-button { background: var(--accent); color: #fff; border: 0; border-radius: 6px; padding: 10px 18px; font: inherit; font-weight: 600; cursor: pointer; }
-button.link { background: none; color: var(--muted); padding: 0; font-weight: 400; }
-.err { color: var(--err); margin-top: 12px; }
-code { background: var(--bg); padding: 1px 4px; border-radius: 4px; }
-.check { display: flex; gap: 8px; align-items: center; font-weight: 400; margin: 0; }
+input[type=password] { font-family: inherit; }
+textarea { min-height: 200px; resize: vertical; }
+textarea:focus, input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent); outline: none; }
+.hint { color: var(--muted); font-size: 13px; margin-top: 6px; }
+.switch { position: relative; display: flex; align-items: center; gap: 12px; cursor: pointer; font-weight: 600; font-size: 14px; user-select: none; }
+.switch input { position: absolute; opacity: 0; pointer-events: none; }
+.switch .track { width: 42px; height: 24px; border-radius: 999px; background: var(--code); border: 1px solid var(--border); position: relative; transition: background .2s; flex: none; }
+.switch .track::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,.25); transition: transform .2s; }
+.switch input:checked + .track { background: var(--grad); border-color: transparent; }
+.switch input:checked + .track::after { transform: translateX(18px); }
+.switch input:focus-visible + .track { outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent); outline-offset: 2px; }
+.form-foot { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-top: 8px; }
+.alert { margin-top: 14px; padding: 12px 14px; border-radius: 12px; font-size: 14px; background: color-mix(in srgb, var(--mal) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--mal) 35%, transparent); color: var(--text); }
+.notice { border-left: 4px solid var(--sus); }
+.signin { max-width: 440px; margin: 28px auto 0; }
+.signin .btn-primary { width: 100%; padding: 12px; }
+.footnote { margin-top: 28px; text-align: center; font-size: 12px; color: var(--muted); }
 </style>
 </head>
 <body>
-<main>
-  <h1>OSINTCrawler</h1>
-  <div class="muted">Multi-source OSINT enrichment for IPs, domains, URLs, hashes, emails, phones, addresses, CVEs, ASNs, wallets and usernames.</div>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="./">
+      <span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6l7-3z"/><circle cx="12" cy="11" r="2.4"/></svg></span>
+      <span>OSINT<span class="gradient-text">Crawler</span></span>
+    </a>
+    <div class="topbar-actions">
+      <button class="btn btn-icon" type="button" data-theme-toggle aria-label="Toggle dark and light mode" title="Toggle theme">
+        <svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        <svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <h1>Investigate any indicator in <span class="gradient-text">one lookup</span></h1>
+    <p>Query dozens of OSINT sources in parallel for IPs, domains, URLs, file hashes, emails, phone numbers, addresses, CVEs, ASNs, wallets and usernames, and get a clear, explainable verdict.</p>
+    <div class="pills">
+      <span class="pill">IP &amp; domain intel</span><span class="pill">Malware &amp; URLs</span><span class="pill">CVE priority</span>
+      <span class="pill">Email &amp; phone</span><span class="pill">Crypto wallets</span><span class="pill">Username checks</span>
+    </div>
+  </section>
 
   {% if not configured %}
-  <section class="panel">
+  <section class="card form-card">
     <strong>Server not configured.</strong>
-    <p>Set an <code>ACCESS_TOKEN</code> environment variable (at least 16 characters) and redeploy.</p>
+    <p class="muted">Set an <code>ACCESS_TOKEN</code> environment variable (at least 16 characters) and restart the server.</p>
   </section>
   {% elif not authed %}
-  <section class="panel">
+  <section class="card signin">
+    <h2 style="margin:0 0 4px;">Sign in</h2>
+    <p class="muted" style="margin:0 0 18px;">Enter your access token to continue.</p>
     <form method="post" action="login" autocomplete="off">
-      <label for="token">Access token</label>
-      <input id="token" name="token" type="password" required autofocus>
-      {% if error %}<div class="err">{{ error }}</div>{% endif %}
-      <div class="row"><span class="muted">Sessions last 12 hours.</span><button type="submit">Sign in</button></div>
+      <div class="field">
+        <label for="token">Access token</label>
+        <input id="token" name="token" type="password" required autofocus>
+      </div>
+      {% if error %}<div class="alert">{{ error }}</div>{% endif %}
+      <button class="btn btn-primary" type="submit">Sign in</button>
+      <p class="hint" style="text-align:center;">Your session lasts 12 hours.</p>
     </form>
   </section>
   {% else %}
-  <section class="panel">
+  <section class="card form-card">
     <form method="post" action="lookup">
-      <label for="indicators">Indicators (one per line, max {{ max_indicators }})</label>
-      <textarea id="indicators" name="indicators" required placeholder="8.8.8.8&#10;hxxps://evil[.]example/login&#10;44d88612fea8a8f36de82e1278abb02f&#10;someone@example.com&#10;+254 712 345678&#10;CVE-2021-44228&#10;AS15169&#10;@username&#10;address: 1600 Pennsylvania Ave NW, Washington DC">{{ indicators or "" }}</textarea>
-      <label for="type">Force type (optional)</label>
-      <select id="type" name="type">
-        <option value="">Auto-detect</option>
-        {% for t in types %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
-      </select>
+      <div class="field">
+        <label for="indicators">Indicators <span class="muted" style="font-weight:500;">(one per line, max {{ max_indicators }})</span></label>
+        <textarea id="indicators" name="indicators" required placeholder="8.8.8.8&#10;hxxps://evil[.]example/login&#10;44d88612fea8a8f36de82e1278abb02f&#10;someone@example.com&#10;+254 712 345678&#10;CVE-2021-44228&#10;AS15169&#10;@username&#10;address: 1600 Pennsylvania Ave NW, Washington DC">{{ indicators or "" }}</textarea>
+        <div class="hint">Defanged input such as <code>hxxp://</code> and <code>[.]</code> is cleaned up automatically.</div>
+      </div>
+      <div class="field">
+        <label for="type">Force type <span class="muted" style="font-weight:500;">(optional)</span></label>
+        <select id="type" name="type">
+          <option value="">Auto-detect</option>
+          {% for t in types %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+        </select>
+      </div>
       {% if ai_available %}
-      <label class="check"><input type="checkbox" name="ai_summary" value="1"> Add AI analyst summary (sends results to Anthropic)</label>
+      <div class="field">
+        <label class="switch"><input type="checkbox" name="ai_summary" value="1"><span class="track"></span>Add AI analyst summary</label>
+        <div class="hint">Sends the condensed results to Anthropic.</div>
+      </div>
       {% endif %}
-      {% if error %}<div class="err">{{ error }}</div>{% endif %}
-      <div class="row"><span class="muted">Lookups disclose indicators to third-party services.</span><button type="submit">Investigate</button></div>
+      {% if error %}<div class="alert">{{ error }}</div>{% endif %}
+      <div class="form-foot">
+        <span class="hint" style="margin:0;">Lookups disclose indicators to third-party services.</span>
+        <button class="btn btn-primary" type="submit">Investigate</button>
+      </div>
     </form>
-    <form method="post" action="logout" class="row"><span></span><button class="link" type="submit">Sign out</button></form>
   </section>
+  <form method="post" action="logout" style="text-align:right; margin-top:14px;">
+    <button class="btn btn-ghost" type="submit">Sign out</button>
+  </form>
   {% endif %}
+
+  <p class="footnote">OSINTCrawler · scores are heuristic; corroborate before acting.</p>
 </main>
+<script{% if nonce %} nonce="{{ nonce }}"{% endif %}>{% include "_theme_toggle.js.j2" %}</script>
 </body>
 </html>
