@@ -56,16 +56,33 @@ def _norm_domain(v: str) -> str | None:
     return v if RE_DOMAIN.match(v) else None
 
 
-def _norm_phone(v: str, region: str | None) -> str | None:
-    if not RE_PHONE_CHARS.match(v):
-        return None
+PHONE_HINT = "include the country code, e.g. +254712345678 or 254712345678"
+
+
+def _parse_phone(text: str, region: str | None, *, strict: bool) -> str | None:
     try:
-        num = phonenumbers.parse(v, None if v.startswith("+") else region)
+        num = phonenumbers.parse(text, region)
     except phonenumbers.NumberParseException:
         return None
-    if not phonenumbers.is_possible_number(num):
+    ok = phonenumbers.is_valid_number(num) if strict else phonenumbers.is_possible_number(num)
+    return phonenumbers.format_number(num, phonenumbers.PhoneNumberFormat.E164) if ok else None
+
+
+def _norm_phone(v: str, region: str | None) -> str | None:
+    """Normalise to E.164. Accepts '+<cc>...', '<cc>...' (no plus), '00<cc>...',
+    or a national number when DEFAULT_PHONE_REGION is set."""
+    if not RE_PHONE_CHARS.match(v):
         return None
-    return phonenumbers.format_number(num, phonenumbers.PhoneNumberFormat.E164)
+    if v.startswith("+"):
+        return _parse_phone(v, None, strict=False)
+    digits = re.sub(r"\D", "", v)
+    if digits.startswith("00"):  # international dialling prefix
+        return _parse_phone("+" + digits[2:], None, strict=False)
+    if region and (p := _parse_phone(v, region, strict=True)):
+        return p
+    # Country code without '+': require a fully valid number so national-format
+    # input (e.g. 0712...) isn't silently reinterpreted as another country.
+    return _parse_phone("+" + digits, None, strict=True)
 
 
 def _build(value: str, itype: IType, original: str, region: str | None) -> Indicator:
@@ -133,8 +150,7 @@ def _build(value: str, itype: IType, original: str, region: str | None) -> Indic
     elif itype is IType.PHONE:
         p = _norm_phone(v, region)
         if not p:
-            hint = "" if v.startswith("+") or region else " (add +country code or set DEFAULT_PHONE_REGION)"
-            raise DetectionError(f"not a valid phone number: {v}{hint}")
+            raise DetectionError(f"invalid phone number {v!r}: {PHONE_HINT}")
         v = p
     elif itype is IType.USERNAME:
         v = v.lstrip("@")
@@ -206,8 +222,7 @@ def detect(raw: str, forced: IType | None = None, phone_region: str | None = Non
         if _norm_phone(v, phone_region):
             return _build(v, IType.PHONE, original, phone_region)
         raise DetectionError(
-            f"{original!r} looks like a phone number but could not be parsed; "
-            "use +<country code> or set DEFAULT_PHONE_REGION"
+            f"invalid phone number {original!r}: {PHONE_HINT}"
         )
     # domain/path without scheme -> URL
     head, slash, _ = v.partition("/")

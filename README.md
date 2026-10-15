@@ -65,7 +65,7 @@ Examples:
 ```bash
 osintcrawler lookup -f iocs.txt --html reports/case-1234.html --json reports/case-1234.json -q
 cat iocs.txt | osintcrawler lookup -f - -d
-osintcrawler lookup "phone:0712 345 678"         # with DEFAULT_PHONE_REGION=KE in .env
+osintcrawler lookup 254712345678 "+1 202 555 0143"   # phone: country code required, '+' optional
 osintcrawler lookup @someuser -s "Username search"
 ```
 
@@ -98,7 +98,7 @@ All keys are **optional** and are read from `.env`, which is **gitignored and ne
 
 **Recommended starter set (all free):** VirusTotal, AbuseIPDB, abuse.ch, OTX, GreyNoise, urlscan.io and ipinfo.
 
-Other settings: `DEFAULT_PHONE_REGION` (e.g. `KE`, `US`) for numbers without `+`, `HTTP_TIMEOUT`, `MAX_CONCURRENCY`, `ANTHROPIC_MODEL` (default `claude-opus-5-5`).
+Phone numbers must include the country code (`+254712345678`, `254712345678` or `00254712345678`); anything else is rejected with an error. Optionally set `DEFAULT_PHONE_REGION` (e.g. `KE`) to also accept national-format numbers like `0712 345 678`. Other settings: `HTTP_TIMEOUT`, `MAX_CONCURRENCY`, `ANTHROPIC_MODEL` (default `claude-opus-5-5`).
 
 ---
 

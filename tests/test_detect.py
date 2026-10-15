@@ -48,10 +48,22 @@ def test_hash_type_meta():
     assert detect("a" * 64).meta["hash_type"] == "sha256"
 
 
-def test_phone_needs_region():
-    with pytest.raises(DetectionError):
-        detect("0712345678")
+@pytest.mark.parametrize("raw", ["+254712345678", "254712345678", "254 712 345 678", "00254712345678",
+                                 "phone:254712345678", "+254 (712) 345-678"])
+def test_phone_with_country_code_with_or_without_plus(raw):
+    ind = detect(raw)
+    assert ind.type is IType.PHONE and ind.value == "+254712345678"
+
+
+@pytest.mark.parametrize("raw", ["0712345678", "712345678", "phone:0712345678"])
+def test_phone_without_country_code_is_rejected(raw):
+    with pytest.raises(DetectionError, match="include the country code"):
+        detect(raw)
+
+
+def test_phone_region_still_supported():
     assert detect("0712345678", phone_region="KE").value == "+254712345678"
+    assert detect("254712345678", phone_region="US").value == "+254712345678"
 
 
 def test_forced_type():
