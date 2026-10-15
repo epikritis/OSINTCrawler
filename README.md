@@ -1,6 +1,6 @@
 # OSINTCrawler
 
-Query **30+ OSINT sources in parallel** for security indicators and get a **summarised, explainable verdict** plus the full per-source detail. It runs as a command-line tool, or as a small token-protected web app you can deploy to Vercel.
+OSINTCrawler queries **30+ OSINT sources in parallel** for security indicators and returns a **summarised, explainable verdict** together with the full per-source detail. It is available as a command-line tool and as a small token-protected web app. Both run locally.
 
 ```
 $ osintcrawler lookup 185.220.101.1 CVE-2023-4966 44d88612fea8a8f36de82e1278abb02f --html report.html
@@ -28,18 +28,20 @@ Input is **refanged automatically** (`hxxp`, `[.]`, `[at]`). The type is auto-de
 
 ## Quick start
 
+Requires Python 3.10 or newer.
+
 ```bash
 git clone https://github.com/epikritis/OSINTCrawler.git
 cd OSINTCrawler
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[web]"
 
-cp .env.example .env        # then paste in whichever API keys you have
+cp .env.example .env        # then add whichever API keys you have (see API keys below)
 osintcrawler sources        # shows which sources are ready / need keys
 osintcrawler lookup 8.8.8.8 example.com CVE-2021-44228
 ```
 
-Works with **no keys at all**: the keyless sources (OTX, GreyNoise community, Shodan InternetDB, RDAP, RIPEstat, crt.sh, DNS, CISA KEV, EPSS, NVD, CIRCL, Blockstream, Nominatim, Gravatar, username checks and enrichment) still run. Each key you add switches on more sources.
+The tool works with **no API keys**. The keyless sources (OTX, GreyNoise community, Shodan InternetDB, RDAP, RIPEstat, crt.sh, DNS, CISA KEV, EPSS, NVD, CIRCL, Blockstream, Nominatim, Gravatar, username checks and enrichment) still run. Each key you add switches on more sources.
 
 ### CLI usage
 
@@ -71,9 +73,48 @@ osintcrawler lookup @someuser -s "Username search"
 
 ---
 
+## Web UI
+
+The web UI is a small FastAPI app. Paste indicators, sign in, and get the HTML report with a JSON download. A JSON API is also available.
+
+It refuses to serve lookups until you set `ACCESS_TOKEN` (at least 16 characters). Generate one with:
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+Add it to `.env` (or export it in your shell), then start the server:
+
+```bash
+uvicorn api.index:app --port 8000
+# open http://localhost:8000 and sign in with the token
+```
+
+Security features: browser sessions use an HttpOnly, SameSite=Strict HMAC cookie with a 12-hour lifetime. The JSON API uses `Authorization: Bearer <ACCESS_TOKEN>`. Sign-in is limited to 5 attempts per minute per IP address, and lookups to 20 per minute (`RATE_LIMIT_PER_MINUTE`). The app also includes an Origin check on POST requests, a nonce-based Content Security Policy, `X-Frame-Options: DENY`, `no-store` caching, `noindex`, and a cap of 20 indicators per request.
+
+### JSON API
+
+```bash
+curl -s http://localhost:8000/api/lookup \
+  -H "Authorization: Bearer $ACCESS_TOKEN" -H "Content-Type: application/json" \
+  -d '{"indicators": ["8.8.8.8", "CVE-2021-44228"], "type": null, "ai_summary": false}'
+```
+
+The response has the same schema as `--json` output: `indicators[].verdict`, `risk_score`, `summary`, `tags` and `results[]` (per source `status`, `score`, `findings`, `data`, `link`, `error`).
+
+---
+
 ## API keys
 
-All keys are **optional** and are read from `.env`, which is **gitignored and never committed**. Only `.env.example` (blank values) is in the repo. Keys are never printed, and any key that appears in an upstream error message is replaced with `***`.
+All keys are **optional**. The tool reads them from a `.env` file in the project folder. The repository includes [`.env.example`](.env.example), a template that lists every variable with a blank value. Copy it to `.env` and add the keys you have:
+
+```bash
+cp .env.example .env
+```
+
+Keys are never printed, and any key that appears in an upstream error message is replaced with `***`.
+
+> **Disclaimer:** Storing API keys in a local `.env` file is fine for personal use on your own machine, but it is **not best practice for production environments**. In production, use a secret manager or key vault instead (for example AWS Secrets Manager, Azure Key Vault, Google Secret Manager, HashiCorp Vault, or your platform's built-in secret store), and inject the values as environment variables at runtime.
 
 | Variable | Service | Free tier | Get it |
 |---|---|---|---|
@@ -95,10 +136,11 @@ All keys are **optional** and are read from `.env`, which is **gitignored and ne
 | `ETHERSCAN_API_KEY` | Etherscan | free | https://etherscan.io/myapikey |
 | `CHAINABUSE_API_KEY` | Chainabuse | free on request | https://www.chainabuse.com/ |
 | `ANTHROPIC_API_KEY` | Claude (AI summary only) | paid per use | https://console.anthropic.com/ |
+| `ACCESS_TOKEN` | Web UI sign-in and API (not a third-party key) | generate locally | see Web UI |
 
 **Recommended starter set (all free):** VirusTotal, AbuseIPDB, abuse.ch, OTX, GreyNoise, urlscan.io and ipinfo.
 
-Phone numbers must include the country code (`+254712345678`, `254712345678` or `00254712345678`); anything else is rejected with an error. Optionally set `DEFAULT_PHONE_REGION` (e.g. `KE`) to also accept national-format numbers like `0712 345 678`. Other settings: `HTTP_TIMEOUT`, `MAX_CONCURRENCY`, `ANTHROPIC_MODEL` (default `claude-opus-5-5`).
+Phone numbers must include the country code (`+254712345678`, `254712345678` or `00254712345678`); anything else is rejected with an error. Optionally set `DEFAULT_PHONE_REGION` (e.g. `KE`) to also accept national-format numbers like `0712 345 678`. Other settings: `HTTP_TIMEOUT`, `MAX_CONCURRENCY`, `RATE_LIMIT_PER_MINUTE`, `ANTHROPIC_MODEL` (default `claude-opus-5-5`).
 
 ---
 
@@ -137,41 +179,6 @@ Weights and thresholds are in one place, [`osintcrawler/scoring.py`](osintcrawle
 - Private/reserved IPs are never sent to external services.
 - Phone parsing is local. All other lookups go out over HTTPS (Numverify refuses plain HTTP so the key can't leak).
 - DNS lookups use Cloudflare DNS-over-HTTPS, not your local resolver.
-
----
-
-## Web UI and Vercel deployment
-
-The web UI is a small FastAPI app: paste indicators, get the HTML report (with JSON download). A JSON API is also available.
-
-**Security:** it refuses to serve lookups unless `ACCESS_TOKEN` (≥ 16 chars) is set. Browser sessions use an HttpOnly, Secure, SameSite=Strict HMAC cookie with a 12 h lifetime. The API uses `Authorization: Bearer`. There is also per-IP rate limiting (login: 5/min), an Origin check on POSTs, a nonce-based CSP, `X-Frame-Options: DENY`, `no-store`, `noindex` and a cap of 20 indicators per request.
-
-### Run locally
-
-```bash
-export ACCESS_TOKEN=$(python -c "import secrets; print(secrets.token_urlsafe(32))")
-uvicorn api.index:app --port 8000
-# open http://localhost:8000 and sign in with the token
-```
-
-### Deploy to Vercel (about 5 minutes)
-
-1. Sign in at https://vercel.com with GitHub → **Add New… → Project** → import `epikritis/OSINTCrawler`.
-2. Framework preset: **Other**. Leave the build settings at their defaults (`vercel.json` routes everything to `api/index.py`).
-3. **Settings → Environment Variables:** add `ACCESS_TOKEN` (long random string) and any API keys from the table above. Don't upload your `.env` file. Paste the values into the dashboard instead.
-4. Deploy, open the URL and sign in with your `ACCESS_TOKEN`.
-
-Notes: on the Hobby plan functions run for at most 60 s. Web lookups use a 20 s per-source timeout and a limit of 20 indicators. Rate limits are tracked per serverless instance, and Vercel's own protection features can be layered on top.
-
-### JSON API
-
-```bash
-curl -s https://<your-app>.vercel.app/api/lookup \
-  -H "Authorization: Bearer $ACCESS_TOKEN" -H "Content-Type: application/json" \
-  -d '{"indicators": ["8.8.8.8", "CVE-2021-44228"], "type": null, "ai_summary": false}'
-```
-
-The response has the same schema as `--json` output: `indicators[].verdict`, `risk_score`, `summary`, `tags` and `results[]` (per source `status`, `score`, `findings`, `data`, `link`, `error`).
 
 ---
 
