@@ -98,8 +98,10 @@ def _same_origin(request: Request) -> bool:
     origin = request.headers.get("origin")
     if not origin:
         return True  # non-browser clients / older browsers; SameSite=Strict still protects the cookie
-    host = request.headers.get("x-forwarded-host") or request.headers.get("host", "")
-    return origin.split("://", 1)[-1] == host
+    # Compare with the Host header the browser actually addressed. Proxies such as
+    # Vercel can rewrite X-Forwarded-Host to an internal name, which broke this check.
+    host = request.headers.get("host") or request.headers.get("x-forwarded-host", "")
+    return origin.split("://", 1)[-1].lower() == host.lower()
 
 
 def _secure(request: Request) -> bool:

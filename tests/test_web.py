@@ -73,3 +73,11 @@ def test_report_escapes_html(client):
     client.post("/login", data={"token": TOKEN})
     page = client.post("/lookup", data={"indicators": "<script>alert(1)</script>.com"})
     assert "<script>alert(1)</script>" not in page.text
+
+
+def test_same_origin_ignores_mismatched_forwarded_host(client):
+    # Behind a proxy the forwarded host may be internal; the browser's Host/Origin must still match.
+    client.post("/login", data={"token": TOKEN})
+    resp = client.post("/lookup", data={"indicators": "example.com"},
+                       headers={"Origin": "https://testserver", "X-Forwarded-Host": "internal.example"})
+    assert resp.status_code == 200
